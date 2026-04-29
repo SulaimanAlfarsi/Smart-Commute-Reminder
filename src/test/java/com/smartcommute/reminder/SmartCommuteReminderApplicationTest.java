@@ -2,11 +2,14 @@ package com.smartcommute.reminder;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SmartCommuteReminderApplicationTest {
     @Test
-    void mainRunsWithoutThrowing() {
-        assertDoesNotThrow(() -> SmartCommuteReminderApplication.main(new String[0]));
+    void hasExpectedApplicationClassName() {
+        assertEquals(
+                "com.smartcommute.reminder.SmartCommuteReminderApplication",
+                SmartCommuteReminderApplication.class.getName()
+        );
     }
 }

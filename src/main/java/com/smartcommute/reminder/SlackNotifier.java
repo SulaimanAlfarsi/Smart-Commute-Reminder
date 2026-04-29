@@ -27,8 +27,16 @@ public final class SlackNotifier {
     }
 
     public void sendNewBestCommuteNotification(AppConfig config, CommuteResult commuteResult) {
+        sendNewBestCommuteNotification(config, CommuteDirection.HOME_TO_WORK, commuteResult);
+    }
+
+    public void sendNewBestCommuteNotification(
+            AppConfig config,
+            CommuteDirection direction,
+            CommuteResult commuteResult
+    ) {
         Map<String, String> payload = new LinkedHashMap<>();
-        payload.put("text", buildMessage(commuteResult));
+        payload.put("text", buildMessage(direction, commuteResult));
 
         try {
             String jsonPayload = objectMapper.writeValueAsString(payload);
@@ -49,9 +57,10 @@ public final class SlackNotifier {
         }
     }
 
-    private static String buildMessage(CommuteResult commuteResult) {
+    private static String buildMessage(CommuteDirection direction, CommuteResult commuteResult) {
         return String.format(
-                "Best commute so far.%nRoute: %s -> %s%nCurrent traffic time: %s%nDistance: %s%nLeave now.",
+                "Best %s commute so far.%nRoute: %s -> %s%nCurrent traffic time: %s%nDistance: %s%nLeave now.",
+                direction == CommuteDirection.HOME_TO_WORK ? "home to work" : "work to home",
                 commuteResult.getOrigin(),
                 commuteResult.getDestination(),
                 commuteResult.getDurationInTrafficText(),

@@ -4,8 +4,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 public final class AppConfig {
     private static final String PROPERTIES_FILE = "application.properties";
@@ -15,6 +20,12 @@ public final class AppConfig {
     private final String workLocation;
     private final int pollingIntervalMinutes;
     private final int notificationCooldownMinutes;
+    private final Set<DayOfWeek> commuteDays;
+    private final LocalTime morningWindowStart;
+    private final LocalTime morningWindowEnd;
+    private final boolean eveningWindowEnabled;
+    private final LocalTime eveningWindowStart;
+    private final LocalTime eveningWindowEnd;
     private final String googleMapsApiKey;
     private final String slackWebhookUrl;
 
@@ -23,6 +34,12 @@ public final class AppConfig {
             String workLocation,
             int pollingIntervalMinutes,
             int notificationCooldownMinutes,
+            Set<DayOfWeek> commuteDays,
+            LocalTime morningWindowStart,
+            LocalTime morningWindowEnd,
+            boolean eveningWindowEnabled,
+            LocalTime eveningWindowStart,
+            LocalTime eveningWindowEnd,
             String googleMapsApiKey,
             String slackWebhookUrl
     ) {
@@ -30,6 +47,12 @@ public final class AppConfig {
         this.workLocation = workLocation;
         this.pollingIntervalMinutes = pollingIntervalMinutes;
         this.notificationCooldownMinutes = notificationCooldownMinutes;
+        this.commuteDays = Collections.unmodifiableSet(EnumSet.copyOf(commuteDays));
+        this.morningWindowStart = morningWindowStart;
+        this.morningWindowEnd = morningWindowEnd;
+        this.eveningWindowEnabled = eveningWindowEnabled;
+        this.eveningWindowStart = eveningWindowStart;
+        this.eveningWindowEnd = eveningWindowEnd;
         this.googleMapsApiKey = googleMapsApiKey;
         this.slackWebhookUrl = slackWebhookUrl;
     }
@@ -57,6 +80,12 @@ public final class AppConfig {
                 requiredProperty(properties, "work.location"),
                 parseIntProperty(properties, "polling.interval.minutes"),
                 parseIntProperty(properties, "notification.cooldown.minutes"),
+                parseCommuteDays(properties),
+                parseTimeProperty(properties, "morning.window.start"),
+                parseTimeProperty(properties, "morning.window.end"),
+                parseBooleanProperty(properties, "evening.window.enabled"),
+                parseTimeProperty(properties, "evening.window.start"),
+                parseTimeProperty(properties, "evening.window.end"),
                 requiredEnvironmentVariable("GOOGLE_MAPS_API_KEY", dotenv, environment),
                 requiredEnvironmentVariable("SLACK_WEBHOOK_URL", dotenv, environment)
         );
@@ -76,6 +105,30 @@ public final class AppConfig {
 
     public int getNotificationCooldownMinutes() {
         return notificationCooldownMinutes;
+    }
+
+    public Set<DayOfWeek> getCommuteDays() {
+        return commuteDays;
+    }
+
+    public LocalTime getMorningWindowStart() {
+        return morningWindowStart;
+    }
+
+    public LocalTime getMorningWindowEnd() {
+        return morningWindowEnd;
+    }
+
+    public boolean isEveningWindowEnabled() {
+        return eveningWindowEnabled;
+    }
+
+    public LocalTime getEveningWindowStart() {
+        return eveningWindowStart;
+    }
+
+    public LocalTime getEveningWindowEnd() {
+        return eveningWindowEnd;
     }
 
     public String getGoogleMapsApiKey() {
@@ -102,6 +155,42 @@ public final class AppConfig {
         } catch (NumberFormatException exception) {
             throw new IllegalStateException("Invalid integer for property: " + key, exception);
         }
+    }
+
+    private static boolean parseBooleanProperty(Properties properties, String key) {
+        return Boolean.parseBoolean(requiredProperty(properties, key));
+    }
+
+    private static LocalTime parseTimeProperty(Properties properties, String key) {
+        try {
+            return LocalTime.parse(requiredProperty(properties, key));
+        } catch (RuntimeException exception) {
+            throw new IllegalStateException("Invalid time for property: " + key, exception);
+        }
+    }
+
+    private static Set<DayOfWeek> parseCommuteDays(Properties properties) {
+        String value = requiredProperty(properties, "commute.days");
+        EnumSet<DayOfWeek> days = EnumSet.noneOf(DayOfWeek.class);
+
+        for (String rawDay : value.split(",")) {
+            String day = rawDay.trim();
+            if (day.isEmpty()) {
+                continue;
+            }
+
+            try {
+                days.add(DayOfWeek.valueOf(day));
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalStateException("Invalid day in commute.days: " + day, exception);
+            }
+        }
+
+        if (days.isEmpty()) {
+            throw new IllegalStateException("commute.days must include at least one day");
+        }
+
+        return days;
     }
 
     private static String requiredEnvironmentVariable(String key, Properties dotenv, Map<String, String> environment) {

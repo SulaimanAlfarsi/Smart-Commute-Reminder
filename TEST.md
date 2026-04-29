@@ -98,6 +98,8 @@ Expected:
 
 - Maven build succeeds
 - `AppConfigTest` passes
+- `CommuteMonitorTest` passes
+- `CommuteSchedulePolicyTest` passes
 - `GoogleMapsServiceTest` passes
 - `SmartCommuteReminderApplicationTest` passes
 
@@ -112,8 +114,14 @@ Expected values:
 ```properties
 home.location=23.57331801470762, 58.33842328754992
 work.location=23.43318302828463, 58.47086190334765
-polling.interval.minutes=30
-notification.cooldown.minutes=5
+polling.interval.minutes=5
+notification.cooldown.minutes=30
+commute.days=SUNDAY,MONDAY,TUESDAY,WEDNESDAY,THURSDAY
+morning.window.start=06:00
+morning.window.end=10:00
+evening.window.enabled=true
+evening.window.start=16:00
+evening.window.end=21:00
 ```
 
 ## 3. Check Local Secrets
@@ -167,8 +175,11 @@ Make sure these fields exist in the real response:
 Open these files:
 
 - `src/main/java/com/smartcommute/reminder/AppConfig.java`
+- `src/main/java/com/smartcommute/reminder/CommuteMonitor.java`
+- `src/main/java/com/smartcommute/reminder/CommuteSchedulePolicy.java`
 - `src/main/java/com/smartcommute/reminder/GoogleMapsService.java`
 - `src/main/java/com/smartcommute/reminder/SlackNotifier.java`
+- `src/main/java/com/smartcommute/reminder/SmartCommuteReminderApplication.java`
 
 Verify:
 
@@ -176,31 +187,118 @@ Verify:
 - `AppConfig` reads `work.location`
 - `AppConfig` reads `polling.interval.minutes`
 - `AppConfig` reads `notification.cooldown.minutes`
+- `AppConfig` reads commute days and time windows
 - `AppConfig` reads secrets from environment variables first
 - `AppConfig` falls back to `.env`
+- `CommuteSchedulePolicy` allows polling only during configured windows
+- `CommuteSchedulePolicy` uses home to work during the morning window
+- `CommuteSchedulePolicy` uses work to home during the evening window
+- `CommuteMonitor` skips Google calls outside configured windows
+- `CommuteMonitor` tracks best commute time in memory per direction
+- `CommuteMonitor` sends Slack only when a new best time is found for that direction
+- `CommuteMonitor` applies notification cooldown
+- `SmartCommuteReminderApplication` starts scheduled polling
 - `GoogleMapsService` calls Google Distance Matrix API
 - `GoogleMapsService` uses `departure_time=now`
 - `GoogleMapsService` uses `traffic_model=best_guess`
 - `SlackNotifier` prepares a Slack webhook JSON message
 
-## 6. Current Limits
+## 6. Manual Full App Test
 
-You can test these parts now:
+Use this only when you are ready to make a real Google Maps API request and possibly send one Slack message.
 
-- config loading
-- JSON parsing
-- Slack notifier code presence
-- build and tests
+Before running:
 
-You cannot fully test these parts yet:
+- confirm `.env` contains real `GOOGLE_MAPS_API_KEY`
+- confirm `.env` contains real `SLACK_WEBHOOK_URL`
+- confirm current day is listed in `commute.days`
+- confirm current time is inside `morning.window.start` and `morning.window.end`
 
-- scheduled polling
-- best commute tracking
-- cooldown enforcement
-- automatic Slack notification flow
-- full startup-to-notification app behavior
+Run:
 
-## 7. Copy-Paste Commands
+```powershell
+.\mvnw.cmd -q exec:java
+```
+
+Expected console output:
+
+- route is printed
+- direction is printed
+- distance is printed
+- normal duration is printed
+- traffic duration is printed
+- first result becomes the current best time
+- Slack notification is sent for the first best time
+
+Stop the app after the first cycle:
+
+```text
+Ctrl+C
+```
+
+Important:
+
+- The app runs continuously after startup.
+- It polls every `polling.interval.minutes`.
+- With the current config, that means every 5 minutes during allowed commute windows.
+- Stop it manually if you only want one test request.
+
+## 7. Manual Skip Test
+
+Use this to confirm the app avoids Google Maps requests outside commute windows.
+
+Temporarily set `morning.window.start` and `morning.window.end` to a time range that does not include the current time.
+
+Example:
+
+```properties
+morning.window.start=06:00
+morning.window.end=06:01
+evening.window.enabled=false
+```
+
+Run:
+
+```powershell
+.\mvnw.cmd -q exec:java
+```
+
+Expected:
+
+- console prints `Skipping Google Maps request outside commute window`
+- no Google Maps API request should be made
+- no Slack message should be sent
+
+Stop the app:
+
+```text
+Ctrl+C
+```
+
+After the skip test, put the real window back:
+
+```properties
+morning.window.start=06:00
+morning.window.end=10:00
+evening.window.enabled=true
+evening.window.start=16:00
+evening.window.end=21:00
+```
+
+## 8. Direction Behavior
+
+The app uses different route directions based on the current time:
+
+- `06:00` to `10:00`: home to work
+- `16:00` to `21:00`: work to home
+
+Both windows run only on:
+
+```text
+SUNDAY,MONDAY,TUESDAY,WEDNESDAY,THURSDAY
+```
+
+## 9. Copy-Paste Commands
 
 Run tests:
 
@@ -220,12 +318,24 @@ Package app:
 .\mvnw.cmd package
 ```
 
-## 8. Postman Copy-Paste Values
+Run app manually:
 
-Google Maps request:
+```powershell
+.\mvnw.cmd -q exec:java
+```
+
+## 10. Postman Copy-Paste Values
+
+Google Maps morning request, home to work:
 
 ```text
 GET https://maps.googleapis.com/maps/api/distancematrix/json?origins=23.57331801470762,58.33842328754992&destinations=23.43318302828463,58.47086190334765&departure_time=now&traffic_model=best_guess&key=YOUR_GOOGLE_MAPS_API_KEY
+```
+
+Google Maps evening request, work to home:
+
+```text
+GET https://maps.googleapis.com/maps/api/distancematrix/json?origins=23.43318302828463,58.47086190334765&destinations=23.57331801470762,58.33842328754992&departure_time=now&traffic_model=best_guess&key=YOUR_GOOGLE_MAPS_API_KEY
 ```
 
 Slack request body:

@@ -25,10 +25,21 @@ public final class GoogleMapsService {
     }
 
     public CommuteResult fetchCommute(AppConfig config) {
+        return fetchCommute(config, CommuteDirection.HOME_TO_WORK);
+    }
+
+    public CommuteResult fetchCommute(AppConfig config, CommuteDirection direction) {
+        String origin = direction == CommuteDirection.HOME_TO_WORK
+                ? config.getHomeLocation()
+                : config.getWorkLocation();
+        String destination = direction == CommuteDirection.HOME_TO_WORK
+                ? config.getWorkLocation()
+                : config.getHomeLocation();
+
         HttpUrl url = HttpUrl.parse(DISTANCE_MATRIX_URL)
                 .newBuilder()
-                .addQueryParameter("origins", config.getHomeLocation())
-                .addQueryParameter("destinations", config.getWorkLocation())
+                .addQueryParameter("origins", origin)
+                .addQueryParameter("destinations", destination)
                 .addQueryParameter("departure_time", "now")
                 .addQueryParameter("traffic_model", "best_guess")
                 .addQueryParameter("key", config.getGoogleMapsApiKey())
