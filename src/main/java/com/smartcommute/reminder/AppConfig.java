@@ -26,6 +26,9 @@ public final class AppConfig {
     private final boolean eveningWindowEnabled;
     private final LocalTime eveningWindowStart;
     private final LocalTime eveningWindowEnd;
+    private final Path historyFile;
+    private final int summaryBucketMinutes;
+    private final int summaryTopSlots;
     private final String googleMapsApiKey;
     private final String slackWebhookUrl;
 
@@ -40,6 +43,9 @@ public final class AppConfig {
             boolean eveningWindowEnabled,
             LocalTime eveningWindowStart,
             LocalTime eveningWindowEnd,
+            Path historyFile,
+            int summaryBucketMinutes,
+            int summaryTopSlots,
             String googleMapsApiKey,
             String slackWebhookUrl
     ) {
@@ -53,6 +59,9 @@ public final class AppConfig {
         this.eveningWindowEnabled = eveningWindowEnabled;
         this.eveningWindowStart = eveningWindowStart;
         this.eveningWindowEnd = eveningWindowEnd;
+        this.historyFile = historyFile;
+        this.summaryBucketMinutes = summaryBucketMinutes;
+        this.summaryTopSlots = summaryTopSlots;
         this.googleMapsApiKey = googleMapsApiKey;
         this.slackWebhookUrl = slackWebhookUrl;
     }
@@ -86,6 +95,9 @@ public final class AppConfig {
                 parseBooleanProperty(properties, "evening.window.enabled"),
                 parseTimeProperty(properties, "evening.window.start"),
                 parseTimeProperty(properties, "evening.window.end"),
+                Path.of(requiredProperty(properties, "history.file")),
+                parseIntProperty(properties, "summary.bucket.minutes"),
+                parseIntProperty(properties, "summary.top.slots"),
                 requiredEnvironmentVariable("GOOGLE_MAPS_API_KEY", dotenv, environment),
                 requiredEnvironmentVariable("SLACK_WEBHOOK_URL", dotenv, environment)
         );
@@ -129,6 +141,18 @@ public final class AppConfig {
 
     public LocalTime getEveningWindowEnd() {
         return eveningWindowEnd;
+    }
+
+    public Path getHistoryFile() {
+        return historyFile;
+    }
+
+    public int getSummaryBucketMinutes() {
+        return summaryBucketMinutes;
+    }
+
+    public int getSummaryTopSlots() {
+        return summaryTopSlots;
     }
 
     public String getGoogleMapsApiKey() {

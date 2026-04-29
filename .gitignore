@@ -38,3 +38,6 @@ bin/
 ### Maven ###
 target/
 .m2/
+
+### Runtime data ###
+data/

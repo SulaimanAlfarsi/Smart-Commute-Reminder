@@ -98,10 +98,12 @@ Expected:
 
 - Maven build succeeds
 - `AppConfigTest` passes
+- `CommuteHistoryStoreTest` passes
 - `CommuteMonitorTest` passes
 - `CommuteSchedulePolicyTest` passes
 - `GoogleMapsServiceTest` passes
 - `SmartCommuteReminderApplicationTest` passes
+- `WeeklySummaryGeneratorTest` passes
 
 ## 2. Check Config Values
 
@@ -122,6 +124,9 @@ morning.window.end=10:00
 evening.window.enabled=true
 evening.window.start=16:00
 evening.window.end=21:00
+history.file=data/commute-history.csv
+summary.bucket.minutes=30
+summary.top.slots=3
 ```
 
 ## 3. Check Local Secrets
@@ -188,6 +193,7 @@ Verify:
 - `AppConfig` reads `polling.interval.minutes`
 - `AppConfig` reads `notification.cooldown.minutes`
 - `AppConfig` reads commute days and time windows
+- `AppConfig` reads history and summary settings
 - `AppConfig` reads secrets from environment variables first
 - `AppConfig` falls back to `.env`
 - `CommuteSchedulePolicy` allows polling only during configured windows
@@ -197,7 +203,9 @@ Verify:
 - `CommuteMonitor` tracks best commute time in memory per direction
 - `CommuteMonitor` sends Slack only when a new best time is found for that direction
 - `CommuteMonitor` applies notification cooldown
+- `CommuteMonitor` logs every successful commute result to history
 - `SmartCommuteReminderApplication` starts scheduled polling
+- `SmartCommuteReminderApplication` supports summary mode
 - `GoogleMapsService` calls Google Distance Matrix API
 - `GoogleMapsService` uses `departure_time=now`
 - `GoogleMapsService` uses `traffic_model=best_guess`
@@ -227,6 +235,7 @@ Expected console output:
 - distance is printed
 - normal duration is printed
 - traffic duration is printed
+- successful result is appended to `data/commute-history.csv`
 - first result becomes the current best time
 - Slack notification is sent for the first best time
 
@@ -285,7 +294,69 @@ evening.window.start=16:00
 evening.window.end=21:00
 ```
 
-## 8. Direction Behavior
+## 8. Commute History Log Test
+
+After running the app during an allowed window, open:
+
+- `data/commute-history.csv`
+
+Expected columns:
+
+```text
+timestamp,direction,duration_in_traffic_minutes,distance_meters,duration_in_traffic_text,distance_text
+```
+
+Expected behavior:
+
+- one row is added for each successful Google Maps result
+- morning rows use `HOME_TO_WORK`
+- evening rows use `WORK_TO_HOME`
+- this file is ignored by Git because it is runtime data
+
+Check Git does not include the runtime data:
+
+```powershell
+git status --ignored --short
+```
+
+Expected:
+
+- `!! data/`
+
+## 9. Weekly Summary Test
+
+Use this after you have collected some observations in `data/commute-history.csv`.
+
+Run:
+
+```powershell
+.\mvnw.cmd -q exec:java -Dexec.args="summary"
+```
+
+Expected output:
+
+```text
+Weekly commute summary, last 7 days
+```
+
+The summary shows the best observed 30-minute buckets per direction.
+
+Example shape:
+
+```text
+- home to work: 06:30-07:00, avg 24 min, best 21 min, samples 5
+- work to home: 18:00-18:30, avg 28 min, best 24 min, samples 4
+```
+
+If there is no history yet, expected output:
+
+```text
+No commute observations were found for the last 7 days.
+```
+
+Use the summary to decide smarter windows after enough samples. For example, if the weekly summary repeatedly shows the best morning buckets around `07:00-08:00`, narrow the morning window later.
+
+## 10. Direction Behavior
 
 The app uses different route directions based on the current time:
 
@@ -298,7 +369,7 @@ Both windows run only on:
 SUNDAY,MONDAY,TUESDAY,WEDNESDAY,THURSDAY
 ```
 
-## 9. Copy-Paste Commands
+## 11. Copy-Paste Commands
 
 Run tests:
 
@@ -324,7 +395,13 @@ Run app manually:
 .\mvnw.cmd -q exec:java
 ```
 
-## 10. Postman Copy-Paste Values
+Generate weekly summary:
+
+```powershell
+.\mvnw.cmd -q exec:java -Dexec.args="summary"
+```
+
+## 12. Postman Copy-Paste Values
 
 Google Maps morning request, home to work:
 

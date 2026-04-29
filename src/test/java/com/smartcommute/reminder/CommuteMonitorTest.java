@@ -38,10 +38,12 @@ class CommuteMonitorTest {
     void recordsFirstCommuteAsBestAndSendsSlack() {
         AtomicInteger fetchCount = new AtomicInteger();
         AtomicInteger notificationCount = new AtomicInteger();
+        AtomicInteger historyCount = new AtomicInteger();
         CommuteMonitor monitor = monitorAt(
                 LocalDateTime.of(2026, 4, 29, 7, 0),
                 fetchCount,
                 notificationCount,
+                historyCount,
                 resultWithTrafficMinutes(25)
         );
 
@@ -49,6 +51,7 @@ class CommuteMonitorTest {
 
         assertEquals(1, fetchCount.get());
         assertEquals(1, notificationCount.get());
+        assertEquals(1, historyCount.get());
         assertEquals(25, monitor.getBestTravelTimeMinutes(CommuteDirection.HOME_TO_WORK));
     }
 
@@ -132,9 +135,19 @@ class CommuteMonitorTest {
             LocalDateTime dateTime,
             AtomicInteger fetchCount,
             AtomicInteger notificationCount,
+            AtomicInteger historyCount,
+            CommuteResult result
+    ) {
+        return monitorAt(dateTime, fetchCount, notificationCount, historyCount, new AtomicReference<>(), new CommuteResult[] {result});
+    }
+
+    private static CommuteMonitor monitorAt(
+            LocalDateTime dateTime,
+            AtomicInteger fetchCount,
+            AtomicInteger notificationCount,
             CommuteResult[] results
     ) {
-        return monitorAt(dateTime, fetchCount, notificationCount, new AtomicReference<>(), results);
+        return monitorAt(dateTime, fetchCount, notificationCount, new AtomicInteger(), new AtomicReference<>(), results);
     }
 
     private static CommuteMonitor monitorAt(
@@ -144,13 +157,14 @@ class CommuteMonitorTest {
             AtomicReference<CommuteDirection> fetchedDirection,
             CommuteResult result
     ) {
-        return monitorAt(dateTime, fetchCount, notificationCount, fetchedDirection, new CommuteResult[] {result});
+        return monitorAt(dateTime, fetchCount, notificationCount, new AtomicInteger(), fetchedDirection, new CommuteResult[] {result});
     }
 
     private static CommuteMonitor monitorAt(
             LocalDateTime dateTime,
             AtomicInteger fetchCount,
             AtomicInteger notificationCount,
+            AtomicInteger historyCount,
             AtomicReference<CommuteDirection> fetchedDirection,
             CommuteResult[] results
     ) {
@@ -167,6 +181,7 @@ class CommuteMonitorTest {
                     return results[Math.min(resultIndex.getAndIncrement(), results.length - 1)];
                 },
                 (ignoredConfig, ignoredDirection, ignoredResult) -> notificationCount.incrementAndGet(),
+                ignoredObservation -> historyCount.incrementAndGet(),
                 new PrintStream(new ByteArrayOutputStream())
         );
     }
@@ -183,6 +198,9 @@ class CommuteMonitorTest {
         properties.setProperty("evening.window.enabled", "true");
         properties.setProperty("evening.window.start", "16:00");
         properties.setProperty("evening.window.end", "21:00");
+        properties.setProperty("history.file", "data/test-commute-history.csv");
+        properties.setProperty("summary.bucket.minutes", "30");
+        properties.setProperty("summary.top.slots", "3");
 
         return AppConfig.load(
                 properties,

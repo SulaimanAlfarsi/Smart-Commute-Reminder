@@ -43,6 +43,9 @@ class AppConfigTest {
         assertEquals(true, config.isEveningWindowEnabled());
         assertEquals(LocalTime.of(16, 0), config.getEveningWindowStart());
         assertEquals(LocalTime.of(21, 0), config.getEveningWindowEnd());
+        assertEquals("data/commute-history.csv", config.getHistoryFile().toString().replace('\\', '/'));
+        assertEquals(30, config.getSummaryBucketMinutes());
+        assertEquals(3, config.getSummaryTopSlots());
         assertEquals("test-google-key", config.getGoogleMapsApiKey());
         assertEquals("https://example.com/webhook", config.getSlackWebhookUrl());
     }

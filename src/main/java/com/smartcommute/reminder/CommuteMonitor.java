@@ -12,6 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 public final class CommuteMonitor {
     private final AppConfig config;
@@ -19,6 +20,7 @@ public final class CommuteMonitor {
     private final Clock clock;
     private final BiFunction<AppConfig, CommuteDirection, CommuteResult> commuteFetcher;
     private final TriConsumer<AppConfig, CommuteDirection, CommuteResult> notifier;
+    private final Consumer<CommuteObservation> historyLogger;
     private final PrintStream output;
 
     private final Map<CommuteDirection, Integer> bestTravelTimeMinutes = new EnumMap<>(CommuteDirection.class);
@@ -31,6 +33,7 @@ public final class CommuteMonitor {
                 Clock.systemDefaultZone(),
                 googleMapsService::fetchCommute,
                 slackNotifier::sendNewBestCommuteNotification,
+                new CommuteHistoryStore(config.getHistoryFile())::append,
                 System.out
         );
     }
@@ -41,6 +44,7 @@ public final class CommuteMonitor {
             Clock clock,
             BiFunction<AppConfig, CommuteDirection, CommuteResult> commuteFetcher,
             TriConsumer<AppConfig, CommuteDirection, CommuteResult> notifier,
+            Consumer<CommuteObservation> historyLogger,
             PrintStream output
     ) {
         this.config = Objects.requireNonNull(config);
@@ -48,6 +52,7 @@ public final class CommuteMonitor {
         this.clock = Objects.requireNonNull(clock);
         this.commuteFetcher = Objects.requireNonNull(commuteFetcher);
         this.notifier = Objects.requireNonNull(notifier);
+        this.historyLogger = Objects.requireNonNull(historyLogger);
         this.output = Objects.requireNonNull(output);
     }
 
@@ -72,6 +77,7 @@ public final class CommuteMonitor {
 
         CommuteDirection direction = maybeDirection.get();
         CommuteResult result = commuteFetcher.apply(config, direction);
+        historyLogger.accept(toObservation(now, direction, result));
         printResult(now, direction, result);
 
         int currentMinutes = result.getDurationInTrafficMinutes();
@@ -109,6 +115,21 @@ public final class CommuteMonitor {
         output.printf("Distance: %s%n", result.getDistanceText());
         output.printf("Normal duration: %s%n", result.getDurationText());
         output.printf("Traffic duration: %s%n", result.getDurationInTrafficText());
+    }
+
+    private static CommuteObservation toObservation(
+            LocalDateTime timestamp,
+            CommuteDirection direction,
+            CommuteResult result
+    ) {
+        return new CommuteObservation(
+                timestamp,
+                direction,
+                result.getDurationInTrafficMinutes(),
+                result.getDistanceMeters(),
+                result.getDurationInTrafficText(),
+                result.getDistanceText()
+        );
     }
 
     private void notifyIfCooldownAllows(LocalDateTime now, CommuteDirection direction, CommuteResult result) {
