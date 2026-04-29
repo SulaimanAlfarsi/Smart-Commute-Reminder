@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Properties;
 
 public final class AppConfig {
@@ -48,13 +48,17 @@ public final class AppConfig {
             throw new IllegalStateException("Failed to load " + PROPERTIES_FILE, exception);
         }
 
+        return load(properties, dotenv, System.getenv());
+    }
+
+    static AppConfig load(Properties properties, Properties dotenv, Map<String, String> environment) {
         return new AppConfig(
                 requiredProperty(properties, "home.location"),
                 requiredProperty(properties, "work.location"),
                 parseIntProperty(properties, "polling.interval.minutes"),
                 parseIntProperty(properties, "notification.cooldown.minutes"),
-                requiredEnvironmentVariable("GOOGLE_MAPS_API_KEY", dotenv),
-                requiredEnvironmentVariable("SLACK_WEBHOOK_URL", dotenv)
+                requiredEnvironmentVariable("GOOGLE_MAPS_API_KEY", dotenv, environment),
+                requiredEnvironmentVariable("SLACK_WEBHOOK_URL", dotenv, environment)
         );
     }
 
@@ -100,8 +104,8 @@ public final class AppConfig {
         }
     }
 
-    private static String requiredEnvironmentVariable(String key, Properties dotenv) {
-        String value = System.getenv(key);
+    private static String requiredEnvironmentVariable(String key, Properties dotenv, Map<String, String> environment) {
+        String value = environment.get(key);
         if (value == null || value.isBlank()) {
             value = dotenv.getProperty(key);
         }
