@@ -23,8 +23,8 @@ https://maps.googleapis.com/maps/api/distancematrix/json
 Query params:
 
 ```text
-origins=23.57331801470762,58.33842328754992
-destinations=23.43318302828463,58.47086190334765
+origins=23.433256805800355,58.471094768840096
+destinations=23.57199250778186,58.33931345805371
 departure_time=now
 traffic_model=best_guess
 key=YOUR_GOOGLE_MAPS_API_KEY
@@ -114,10 +114,12 @@ Open:
 Expected values:
 
 ```properties
-home.location=23.57331801470762, 58.33842328754992
-work.location=23.43318302828463, 58.47086190334765
+home.location=23.433256805800355, 58.471094768840096
+work.location=23.57199250778186, 58.33931345805371
+home.name=Al Amerat Home
+work.name=Ghala Software House
 polling.interval.minutes=5
-notification.cooldown.minutes=30
+notification.cooldown.minutes=5
 commute.days=SUNDAY,MONDAY,TUESDAY,WEDNESDAY,THURSDAY
 morning.window.start=06:00
 morning.window.end=10:00
@@ -201,7 +203,7 @@ Verify:
 - `CommuteSchedulePolicy` uses work to home during the evening window
 - `CommuteMonitor` skips Google calls outside configured windows
 - `CommuteMonitor` tracks best commute time in memory per direction
-- `CommuteMonitor` sends Slack only when a new best time is found for that direction
+- `CommuteMonitor` sends Slack when a new best time is found or the commute becomes slower than the previous check
 - `CommuteMonitor` applies notification cooldown
 - `CommuteMonitor` logs every successful commute result to history
 - `SmartCommuteReminderApplication` starts scheduled polling
@@ -250,6 +252,8 @@ Important:
 - The app runs continuously after startup.
 - It polls every `polling.interval.minutes`.
 - With the current config, that means every 5 minutes during allowed commute windows.
+- Slack can send at most every 5 minutes because `notification.cooldown.minutes=5`.
+- Slack is sent only when a new best time is found or traffic becomes slower than the previous successful check.
 - Stop it manually if you only want one test request.
 
 ## 7. Manual Skip Test
@@ -406,13 +410,13 @@ Generate weekly summary:
 Google Maps morning request, home to work:
 
 ```text
-GET https://maps.googleapis.com/maps/api/distancematrix/json?origins=23.57331801470762,58.33842328754992&destinations=23.43318302828463,58.47086190334765&departure_time=now&traffic_model=best_guess&key=YOUR_GOOGLE_MAPS_API_KEY
+GET https://maps.googleapis.com/maps/api/distancematrix/json?origins=23.433256805800355,58.471094768840096&destinations=23.57199250778186,58.33931345805371&departure_time=now&traffic_model=best_guess&key=YOUR_GOOGLE_MAPS_API_KEY
 ```
 
 Google Maps evening request, work to home:
 
 ```text
-GET https://maps.googleapis.com/maps/api/distancematrix/json?origins=23.43318302828463,58.47086190334765&destinations=23.57331801470762,58.33842328754992&departure_time=now&traffic_model=best_guess&key=YOUR_GOOGLE_MAPS_API_KEY
+GET https://maps.googleapis.com/maps/api/distancematrix/json?origins=23.57199250778186,58.33931345805371&destinations=23.433256805800355,58.471094768840096&departure_time=now&traffic_model=best_guess&key=YOUR_GOOGLE_MAPS_API_KEY
 ```
 
 Slack request body:

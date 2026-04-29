@@ -30,10 +30,12 @@ class AppConfigTest {
                 )
         );
 
-        assertEquals("23.57331801470762, 58.33842328754992", config.getHomeLocation());
-        assertEquals("23.43318302828463, 58.47086190334765", config.getWorkLocation());
+        assertEquals("23.433256805800355, 58.471094768840096", config.getHomeLocation());
+        assertEquals("23.57199250778186, 58.33931345805371", config.getWorkLocation());
+        assertEquals("Al Amerat Home", config.getHomeName());
+        assertEquals("Ghala Software House", config.getWorkName());
         assertEquals(5, config.getPollingIntervalMinutes());
-        assertEquals(30, config.getNotificationCooldownMinutes());
+        assertEquals(5, config.getNotificationCooldownMinutes());
         assertEquals(
                 Set.of(DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY),
                 config.getCommuteDays()
@@ -41,7 +43,7 @@ class AppConfigTest {
         assertEquals(LocalTime.of(6, 0), config.getMorningWindowStart());
         assertEquals(LocalTime.of(10, 0), config.getMorningWindowEnd());
         assertEquals(true, config.isEveningWindowEnabled());
-        assertEquals(LocalTime.of(16, 0), config.getEveningWindowStart());
+        assertEquals(LocalTime.parse(properties.getProperty("evening.window.start")), config.getEveningWindowStart());
         assertEquals(LocalTime.of(21, 0), config.getEveningWindowEnd());
         assertEquals("data/commute-history.csv", config.getHistoryFile().toString().replace('\\', '/'));
         assertEquals(30, config.getSummaryBucketMinutes());

@@ -20,8 +20,8 @@ class GoogleMapsServiceTest {
 
         CommuteResult result = service.parseCommuteResult(root);
 
-        assertEquals("23.57331801470762,58.33842328754992", result.getOrigin());
-        assertEquals("23.43318302828463,58.47086190334765", result.getDestination());
+        assertEquals("23.433256805800355,58.471094768840096", result.getOrigin());
+        assertEquals("23.57199250778186,58.33931345805371", result.getDestination());
         assertEquals("OK", result.getStatus());
         assertEquals("25.2 km", result.getDistanceText());
         assertEquals(25185, result.getDistanceMeters());

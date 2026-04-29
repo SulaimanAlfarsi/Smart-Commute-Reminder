@@ -50,10 +50,10 @@ class CommuteSchedulePolicyTest {
 
     private static AppConfig testConfig(boolean eveningEnabled) {
         Properties properties = new Properties();
-        properties.setProperty("home.location", "23.57331801470762, 58.33842328754992");
-        properties.setProperty("work.location", "23.43318302828463, 58.47086190334765");
+        properties.setProperty("home.location", "23.433256805800355, 58.471094768840096");
+        properties.setProperty("work.location", "23.57199250778186, 58.33931345805371");
         properties.setProperty("polling.interval.minutes", "5");
-        properties.setProperty("notification.cooldown.minutes", "30");
+        properties.setProperty("notification.cooldown.minutes", "5");
         properties.setProperty("commute.days", "SUNDAY,MONDAY,TUESDAY,WEDNESDAY,THURSDAY");
         properties.setProperty("morning.window.start", "06:00");
         properties.setProperty("morning.window.end", "10:00");

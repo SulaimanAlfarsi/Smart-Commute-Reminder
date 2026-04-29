@@ -27,7 +27,7 @@ public final class SlackNotifier {
     }
 
     public void sendNewBestCommuteNotification(AppConfig config, CommuteResult commuteResult) {
-        sendNewBestCommuteNotification(config, CommuteDirection.HOME_TO_WORK, commuteResult);
+        sendCommuteUpdateNotification(config, CommuteDirection.HOME_TO_WORK, commuteResult);
     }
 
     public void sendNewBestCommuteNotification(
@@ -35,8 +35,16 @@ public final class SlackNotifier {
             CommuteDirection direction,
             CommuteResult commuteResult
     ) {
+        sendCommuteUpdateNotification(config, direction, commuteResult);
+    }
+
+    public void sendCommuteUpdateNotification(
+            AppConfig config,
+            CommuteDirection direction,
+            CommuteResult commuteResult
+    ) {
         Map<String, String> payload = new LinkedHashMap<>();
-        payload.put("text", buildMessage(direction, commuteResult));
+        payload.put("text", buildMessage(config, direction, commuteResult));
 
         try {
             String jsonPayload = objectMapper.writeValueAsString(payload);
@@ -57,14 +65,29 @@ public final class SlackNotifier {
         }
     }
 
-    private static String buildMessage(CommuteDirection direction, CommuteResult commuteResult) {
+    private static String buildMessage(AppConfig config, CommuteDirection direction, CommuteResult commuteResult) {
+        String directionText = direction == CommuteDirection.HOME_TO_WORK ? "Home -> Work" : "Work -> Home";
+        String routeText = routeText(config, direction);
+
         return String.format(
-                "Best %s commute so far.%nRoute: %s -> %s%nCurrent traffic time: %s%nDistance: %s%nLeave now.",
-                direction == CommuteDirection.HOME_TO_WORK ? "home to work" : "work to home",
-                commuteResult.getOrigin(),
-                commuteResult.getDestination(),
+                ":vertical_traffic_light: *Commute Alert*%n%n"
+                        + ":round_pushpin: *Direction:* %s%n"
+                        + ":world_map: *Route:* %s%n"
+                        + ":car: *Traffic time:* %s%n"
+                        + ":straight_ruler: *Distance:* %s%n%n"
+                        + ":white_check_mark: *Recommendation:* Leave now.",
+                directionText,
+                routeText,
                 commuteResult.getDurationInTrafficText(),
                 commuteResult.getDistanceText()
         );
+    }
+
+    private static String routeText(AppConfig config, CommuteDirection direction) {
+        if (direction == CommuteDirection.HOME_TO_WORK) {
+            return config.getHomeName() + " -> " + config.getWorkName();
+        }
+
+        return config.getWorkName() + " -> " + config.getHomeName();
     }
 }

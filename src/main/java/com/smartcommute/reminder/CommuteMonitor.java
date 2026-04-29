@@ -24,6 +24,7 @@ public final class CommuteMonitor {
     private final PrintStream output;
 
     private final Map<CommuteDirection, Integer> bestTravelTimeMinutes = new EnumMap<>(CommuteDirection.class);
+    private final Map<CommuteDirection, Integer> lastObservedTravelTimeMinutes = new EnumMap<>(CommuteDirection.class);
     private final Map<CommuteDirection, LocalDateTime> lastNotificationAt = new EnumMap<>(CommuteDirection.class);
 
     public CommuteMonitor(AppConfig config, GoogleMapsService googleMapsService, SlackNotifier slackNotifier) {
@@ -32,7 +33,7 @@ public final class CommuteMonitor {
                 new CommuteSchedulePolicy(config),
                 Clock.systemDefaultZone(),
                 googleMapsService::fetchCommute,
-                slackNotifier::sendNewBestCommuteNotification,
+                slackNotifier::sendCommuteUpdateNotification,
                 new CommuteHistoryStore(config.getHistoryFile())::append,
                 System.out
         );
@@ -82,19 +83,35 @@ public final class CommuteMonitor {
 
         int currentMinutes = result.getDurationInTrafficMinutes();
         Integer previousBest = bestTravelTimeMinutes.get(direction);
-        if (previousBest == null || currentMinutes < previousBest) {
+        Integer previousObserved = lastObservedTravelTimeMinutes.get(direction);
+        boolean isNewBest = previousBest == null || currentMinutes < previousBest;
+        boolean isWorseThanLastCheck = previousObserved != null && currentMinutes > previousObserved;
+
+        if (isNewBest) {
             bestTravelTimeMinutes.put(direction, currentMinutes);
             output.printf("New best %s commute time: %d minutes", directionLabel(direction), currentMinutes);
             if (previousBest != null && previousBest > 0) {
                 output.printf(" (previous best: %d minutes)", previousBest);
             }
             output.println();
-
-            notifyIfCooldownAllows(now, direction, result);
-            return;
+        } else if (isWorseThanLastCheck) {
+            output.printf(
+                    "%s commute became slower: %d minutes (previous check: %d minutes)%n",
+                    capitalize(directionLabel(direction)),
+                    currentMinutes,
+                    previousObserved
+            );
+        } else {
+            output.printf("Best %s commute time remains: %d minutes%n", directionLabel(direction), previousBest);
         }
 
-        output.printf("Best %s commute time remains: %d minutes%n", directionLabel(direction), previousBest);
+        lastObservedTravelTimeMinutes.put(direction, currentMinutes);
+
+        if (isNewBest || isWorseThanLastCheck) {
+            notifyIfCooldownAllows(now, direction, result);
+        } else {
+            output.println("Slack notification skipped because commute did not become a new best or slower.");
+        }
     }
 
     Integer getBestTravelTimeMinutes(CommuteDirection direction) {
@@ -111,7 +128,8 @@ public final class CommuteMonitor {
 
     private void printResult(LocalDateTime now, CommuteDirection direction, CommuteResult result) {
         output.printf("[%s] Direction: %s%n", now, directionLabel(direction));
-        output.printf("Route: %s -> %s%n", result.getOrigin(), result.getDestination());
+        output.printf("Route: %s%n", routeLabel(direction));
+        output.printf("Google route: %s -> %s%n", result.getOrigin(), result.getDestination());
         output.printf("Distance: %s%n", result.getDistanceText());
         output.printf("Normal duration: %s%n", result.getDurationText());
         output.printf("Traffic duration: %s%n", result.getDurationInTrafficText());
@@ -155,6 +173,21 @@ public final class CommuteMonitor {
             case HOME_TO_WORK -> "home to work";
             case WORK_TO_HOME -> "work to home";
         };
+    }
+
+    private String routeLabel(CommuteDirection direction) {
+        return switch (direction) {
+            case HOME_TO_WORK -> config.getHomeName() + " -> " + config.getWorkName();
+            case WORK_TO_HOME -> config.getWorkName() + " -> " + config.getHomeName();
+        };
+    }
+
+    private static String capitalize(String value) {
+        if (value.isEmpty()) {
+            return value;
+        }
+
+        return Character.toUpperCase(value.charAt(0)) + value.substring(1);
     }
 
     @FunctionalInterface

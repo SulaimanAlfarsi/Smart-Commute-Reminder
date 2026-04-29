@@ -18,6 +18,8 @@ public final class AppConfig {
 
     private final String homeLocation;
     private final String workLocation;
+    private final String homeName;
+    private final String workName;
     private final int pollingIntervalMinutes;
     private final int notificationCooldownMinutes;
     private final Set<DayOfWeek> commuteDays;
@@ -35,6 +37,8 @@ public final class AppConfig {
     private AppConfig(
             String homeLocation,
             String workLocation,
+            String homeName,
+            String workName,
             int pollingIntervalMinutes,
             int notificationCooldownMinutes,
             Set<DayOfWeek> commuteDays,
@@ -51,6 +55,8 @@ public final class AppConfig {
     ) {
         this.homeLocation = homeLocation;
         this.workLocation = workLocation;
+        this.homeName = homeName;
+        this.workName = workName;
         this.pollingIntervalMinutes = pollingIntervalMinutes;
         this.notificationCooldownMinutes = notificationCooldownMinutes;
         this.commuteDays = Collections.unmodifiableSet(EnumSet.copyOf(commuteDays));
@@ -87,6 +93,8 @@ public final class AppConfig {
         return new AppConfig(
                 requiredProperty(properties, "home.location"),
                 requiredProperty(properties, "work.location"),
+                optionalProperty(properties, "home.name", "Home"),
+                optionalProperty(properties, "work.name", "Work"),
                 parseIntProperty(properties, "polling.interval.minutes"),
                 parseIntProperty(properties, "notification.cooldown.minutes"),
                 parseCommuteDays(properties),
@@ -109,6 +117,14 @@ public final class AppConfig {
 
     public String getWorkLocation() {
         return workLocation;
+    }
+
+    public String getHomeName() {
+        return homeName;
+    }
+
+    public String getWorkName() {
+        return workName;
     }
 
     public int getPollingIntervalMinutes() {
@@ -167,6 +183,15 @@ public final class AppConfig {
         String value = properties.getProperty(key);
         if (value == null || value.isBlank()) {
             throw new IllegalStateException("Missing required property: " + key);
+        }
+
+        return value.trim();
+    }
+
+    private static String optionalProperty(Properties properties, String key, String fallback) {
+        String value = properties.getProperty(key);
+        if (value == null || value.isBlank()) {
+            return fallback;
         }
 
         return value.trim();
