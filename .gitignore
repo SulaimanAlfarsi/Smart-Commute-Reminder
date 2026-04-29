@@ -1,4 +1,6 @@
 ### IntelliJ IDEA ###
+.idea/
+*.iml
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
@@ -31,5 +33,4 @@ bin/
 
 ### Maven ###
 target/
-.mvn/
 .m2/
