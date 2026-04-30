@@ -61,6 +61,7 @@ class CommuteSchedulePolicyTest {
         properties.setProperty("evening.window.start", "16:00");
         properties.setProperty("evening.window.end", "21:00");
         properties.setProperty("history.file", "data/test-commute-history.csv");
+        properties.setProperty("notification.pause.file", "data/test-notification-pause.properties");
         properties.setProperty("summary.bucket.minutes", "30");
         properties.setProperty("summary.top.slots", "3");
 

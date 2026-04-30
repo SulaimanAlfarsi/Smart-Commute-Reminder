@@ -21,6 +21,7 @@ public final class CommuteMonitor {
     private final BiFunction<AppConfig, CommuteDirection, CommuteResult> commuteFetcher;
     private final TriConsumer<AppConfig, CommuteDirection, CommuteResult> notifier;
     private final Consumer<CommuteObservation> historyLogger;
+    private final NotificationPauseStore notificationPauseStore;
     private final PrintStream output;
 
     private final Map<CommuteDirection, Integer> bestTravelTimeMinutes = new EnumMap<>(CommuteDirection.class);
@@ -35,6 +36,7 @@ public final class CommuteMonitor {
                 googleMapsService::fetchCommute,
                 slackNotifier::sendCommuteUpdateNotification,
                 new CommuteHistoryStore(config.getHistoryFile())::append,
+                new NotificationPauseStore(config.getNotificationPauseFile()),
                 System.out
         );
     }
@@ -46,6 +48,7 @@ public final class CommuteMonitor {
             BiFunction<AppConfig, CommuteDirection, CommuteResult> commuteFetcher,
             TriConsumer<AppConfig, CommuteDirection, CommuteResult> notifier,
             Consumer<CommuteObservation> historyLogger,
+            NotificationPauseStore notificationPauseStore,
             PrintStream output
     ) {
         this.config = Objects.requireNonNull(config);
@@ -54,6 +57,7 @@ public final class CommuteMonitor {
         this.commuteFetcher = Objects.requireNonNull(commuteFetcher);
         this.notifier = Objects.requireNonNull(notifier);
         this.historyLogger = Objects.requireNonNull(historyLogger);
+        this.notificationPauseStore = Objects.requireNonNull(notificationPauseStore);
         this.output = Objects.requireNonNull(output);
     }
 
@@ -151,6 +155,14 @@ public final class CommuteMonitor {
     }
 
     private void notifyIfCooldownAllows(LocalDateTime now, CommuteDirection direction, CommuteResult result) {
+        if (notificationPauseStore.isPausedForToday(direction, now.toLocalDate())) {
+            output.printf(
+                    "Slack notification skipped because %s alerts are paused for today.%n",
+                    directionLabel(direction)
+            );
+            return;
+        }
+
         LocalDateTime previousNotificationAt = lastNotificationAt.get(direction);
         if (previousNotificationAt != null) {
             long minutesSinceLastNotification = Duration.between(previousNotificationAt, now).toMinutes();

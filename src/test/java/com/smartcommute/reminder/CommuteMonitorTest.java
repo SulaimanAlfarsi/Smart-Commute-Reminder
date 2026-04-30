@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -213,6 +214,7 @@ class CommuteMonitorTest {
                 },
                 (ignoredConfig, ignoredDirection, ignoredResult) -> notificationCount.incrementAndGet(),
                 ignoredObservation -> historyCount.incrementAndGet(),
+                new NotificationPauseStore(Path.of("target/test-notification-pause.properties")),
                 new PrintStream(new ByteArrayOutputStream())
         );
     }
@@ -234,6 +236,7 @@ class CommuteMonitorTest {
         properties.setProperty("evening.window.start", "16:00");
         properties.setProperty("evening.window.end", "21:00");
         properties.setProperty("history.file", "data/test-commute-history.csv");
+        properties.setProperty("notification.pause.file", "data/test-notification-pause.properties");
         properties.setProperty("summary.bucket.minutes", "30");
         properties.setProperty("summary.top.slots", "3");
 

@@ -29,6 +29,7 @@ public final class AppConfig {
     private final LocalTime eveningWindowStart;
     private final LocalTime eveningWindowEnd;
     private final Path historyFile;
+    private final Path notificationPauseFile;
     private final int summaryBucketMinutes;
     private final int summaryTopSlots;
     private final String googleMapsApiKey;
@@ -48,6 +49,7 @@ public final class AppConfig {
             LocalTime eveningWindowStart,
             LocalTime eveningWindowEnd,
             Path historyFile,
+            Path notificationPauseFile,
             int summaryBucketMinutes,
             int summaryTopSlots,
             String googleMapsApiKey,
@@ -66,6 +68,7 @@ public final class AppConfig {
         this.eveningWindowStart = eveningWindowStart;
         this.eveningWindowEnd = eveningWindowEnd;
         this.historyFile = historyFile;
+        this.notificationPauseFile = notificationPauseFile;
         this.summaryBucketMinutes = summaryBucketMinutes;
         this.summaryTopSlots = summaryTopSlots;
         this.googleMapsApiKey = googleMapsApiKey;
@@ -104,6 +107,7 @@ public final class AppConfig {
                 parseTimeProperty(properties, "evening.window.start"),
                 parseTimeProperty(properties, "evening.window.end"),
                 Path.of(requiredProperty(properties, "history.file")),
+                Path.of(optionalProperty(properties, "notification.pause.file", "data/notification-pause.properties")),
                 parseIntProperty(properties, "summary.bucket.minutes"),
                 parseIntProperty(properties, "summary.top.slots"),
                 requiredEnvironmentVariable("GOOGLE_MAPS_API_KEY", dotenv, environment),
@@ -161,6 +165,10 @@ public final class AppConfig {
 
     public Path getHistoryFile() {
         return historyFile;
+    }
+
+    public Path getNotificationPauseFile() {
+        return notificationPauseFile;
     }
 
     public int getSummaryBucketMinutes() {

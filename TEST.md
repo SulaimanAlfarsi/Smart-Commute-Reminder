@@ -124,9 +124,10 @@ commute.days=SUNDAY,MONDAY,TUESDAY,WEDNESDAY,THURSDAY
 morning.window.start=06:00
 morning.window.end=10:00
 evening.window.enabled=true
-evening.window.start=16:00
+evening.window.start=15:30
 evening.window.end=21:00
 history.file=data/commute-history.csv
+notification.pause.file=data/notification-pause.properties
 summary.bucket.minutes=30
 summary.top.slots=3
 ```
@@ -196,6 +197,7 @@ Verify:
 - `AppConfig` reads `notification.cooldown.minutes`
 - `AppConfig` reads commute days and time windows
 - `AppConfig` reads history and summary settings
+- `AppConfig` reads notification pause settings
 - `AppConfig` reads secrets from environment variables first
 - `AppConfig` falls back to `.env`
 - `CommuteSchedulePolicy` allows polling only during configured windows
@@ -205,9 +207,11 @@ Verify:
 - `CommuteMonitor` tracks best commute time in memory per direction
 - `CommuteMonitor` sends Slack when a new best time is found or the commute becomes slower than the previous check
 - `CommuteMonitor` applies notification cooldown
+- `CommuteMonitor` skips Slack when leaving mode is enabled for the current direction today
 - `CommuteMonitor` logs every successful commute result to history
 - `SmartCommuteReminderApplication` starts scheduled polling
 - `SmartCommuteReminderApplication` supports summary mode
+- `SmartCommuteReminderApplication` supports leaving, resume, and pause-status commands
 - `GoogleMapsService` calls Google Distance Matrix API
 - `GoogleMapsService` uses `departure_time=now`
 - `GoogleMapsService` uses `traffic_model=best_guess`
@@ -403,6 +407,36 @@ Generate weekly summary:
 
 ```powershell
 .\mvnw.cmd -q exec:java -Dexec.args="summary"
+```
+
+Enable leaving mode for the active direction:
+
+```powershell
+java -jar target\smart-commute-reminder-1.0-SNAPSHOT.jar leaving
+```
+
+Enable leaving mode for home to work:
+
+```powershell
+java -jar target\smart-commute-reminder-1.0-SNAPSHOT.jar leaving home-to-work
+```
+
+Enable leaving mode for work to home:
+
+```powershell
+java -jar target\smart-commute-reminder-1.0-SNAPSHOT.jar leaving work-to-home
+```
+
+Resume Slack alerts:
+
+```powershell
+java -jar target\smart-commute-reminder-1.0-SNAPSHOT.jar resume
+```
+
+Check pause status:
+
+```powershell
+java -jar target\smart-commute-reminder-1.0-SNAPSHOT.jar pause-status
 ```
 
 ## 12. Postman Copy-Paste Values

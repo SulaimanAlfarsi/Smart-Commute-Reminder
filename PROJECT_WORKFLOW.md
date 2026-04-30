@@ -65,12 +65,59 @@ Slack is skipped when:
 - The commute time is unchanged.
 - The commute time improves compared with the previous check but is not a new best.
 - The Slack cooldown has not passed.
+- Leaving mode is enabled for the current commute direction today.
 
 Current cooldown:
 
 ```properties
 notification.cooldown.minutes=5
 ```
+
+## Leaving Mode
+
+If you are leaving now and do not want more Slack alerts for that commute today, run:
+
+```powershell
+java -jar target\smart-commute-reminder-1.0-SNAPSHOT.jar leaving
+```
+
+The app chooses the active commute direction from the current time window.
+
+You can also choose the direction manually:
+
+```powershell
+java -jar target\smart-commute-reminder-1.0-SNAPSHOT.jar leaving home-to-work
+java -jar target\smart-commute-reminder-1.0-SNAPSHOT.jar leaving work-to-home
+```
+
+Leaving mode pauses Slack alerts only for today. Tomorrow it expires automatically.
+
+If you changed your mind and did not leave, resume alerts:
+
+```powershell
+java -jar target\smart-commute-reminder-1.0-SNAPSHOT.jar resume
+```
+
+Resume only one direction:
+
+```powershell
+java -jar target\smart-commute-reminder-1.0-SNAPSHOT.jar resume home-to-work
+java -jar target\smart-commute-reminder-1.0-SNAPSHOT.jar resume work-to-home
+```
+
+Check current pause status:
+
+```powershell
+java -jar target\smart-commute-reminder-1.0-SNAPSHOT.jar pause-status
+```
+
+Pause state is stored locally in:
+
+```text
+data/notification-pause.properties
+```
+
+The monitor still polls Google Maps and logs history while alerts are paused.
 
 ## Example Behavior
 
@@ -89,6 +136,12 @@ Commute history is written to:
 
 ```text
 data/commute-history.csv
+```
+
+Notification pause state is written to:
+
+```text
+data/notification-pause.properties
 ```
 
 This file is runtime data and should stay ignored by Git.

@@ -46,6 +46,7 @@ class AppConfigTest {
         assertEquals(LocalTime.parse(properties.getProperty("evening.window.start")), config.getEveningWindowStart());
         assertEquals(LocalTime.of(21, 0), config.getEveningWindowEnd());
         assertEquals("data/commute-history.csv", config.getHistoryFile().toString().replace('\\', '/'));
+        assertEquals("data/notification-pause.properties", config.getNotificationPauseFile().toString().replace('\\', '/'));
         assertEquals(30, config.getSummaryBucketMinutes());
         assertEquals(3, config.getSummaryTopSlots());
         assertEquals("test-google-key", config.getGoogleMapsApiKey());
