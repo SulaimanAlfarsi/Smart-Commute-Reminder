@@ -75,12 +75,24 @@ public final class SlackNotifier {
                         + ":world_map: *Route:* %s%n"
                         + ":car: *Traffic time:* %s%n"
                         + ":straight_ruler: *Distance:* %s%n%n"
-                        + ":white_check_mark: *Recommendation:* Leave now.",
+                        + ":white_check_mark: *Recommendation:* Leave now.%n%n"
+                        + ":pause_button: *If you are leaving now, pause more alerts:*%n"
+                        + "`java -jar target\\smart-commute-reminder-1.0-SNAPSHOT.jar leaving %s`%n"
+                        + ":arrow_forward: *If you changed your mind, resume alerts:*%n"
+                        + "`java -jar target\\smart-commute-reminder-1.0-SNAPSHOT.jar resume %s`%n"
+                        + ":mag: *Check pause status:*%n"
+                        + "`java -jar target\\smart-commute-reminder-1.0-SNAPSHOT.jar pause-status`",
                 directionText,
                 routeText,
                 commuteResult.getDurationInTrafficText(),
-                commuteResult.getDistanceText()
+                commuteResult.getDistanceText(),
+                directionCommand(direction),
+                directionCommand(direction)
         );
+    }
+
+    private static String directionCommand(CommuteDirection direction) {
+        return direction == CommuteDirection.HOME_TO_WORK ? "home-to-work" : "work-to-home";
     }
 
     private static String routeText(AppConfig config, CommuteDirection direction) {
